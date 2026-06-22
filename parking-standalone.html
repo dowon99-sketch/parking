@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>🚗 주차 위치</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --primary: #2563EB;
+      --green:   #16A34A;
+      --red:     #DC2626;
+      --bg:      #F1F5F9;
+      --card:    #FFFFFF;
+      --text:    #1E293B;
+      --muted:   #64748B;
+      --border:  #E2E8F0;
+      --radius:  16px;
+      --shadow:  0 2px 12px rgba(0,0,0,.08);
+    }
+
+    html, body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+    body { max-width: 480px; margin: 0 auto; padding: 0 0 60px; }
+
+    /* ── 헤더 ── */
+    #app-header {
+      background: var(--primary);
+      color: #fff;
+      text-align: center;
+      padding: 32px 20px 26px;
+      border-radius: 0 0 24px 24px;
+      box-shadow: 0 4px 16px rgba(37,99,235,.3);
+    }
+    #app-header h1  { font-size: 1.55rem; font-weight: 900; letter-spacing: -.5px; }
+    #app-header .sub { font-size: .82rem; opacity: .85; margin-top: 5px; }
+
+    /* ── 섹션 ── */
+    section { margin: 20px 16px 0; }
+    .section-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+
+    /* ── 상태 카드 ── */
+    #status-card {
+      display: flex; align-items: center; gap: 16px;
+      border-left: 6px solid var(--border); transition: border-color .3s;
+    }
+    #status-card.saved { border-left-color: var(--green); }
+    #status-card.empty { border-left-color: var(--muted); }
+    #status-icon  { font-size: 2.8rem; line-height: 1; flex-shrink: 0; }
+    #status-main  { font-size: 1.4rem; font-weight: 900; letter-spacing: -.3px; }
+    #status-sub   { font-size: .88rem; color: var(--muted); margin-top: 3px; }
+    #status-time  { font-size: .76rem; color: #94A3B8; margin-top: 5px; }
+
+    /* ── 입력 그룹 ── */
+    .input-group { margin-bottom: 20px; }
+    .group-label {
+      display: block; font-size: .82rem; font-weight: 700;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: .6px; margin-bottom: 9px;
+    }
+
+    /* ── 버튼 그룹 ── */
+    .btn-group { display: flex; gap: 8px; }
+    .pick-btn {
+      flex: 1; padding: 14px 8px;
+      border: 2px solid var(--border); border-radius: 12px;
+      background: var(--card); color: var(--muted);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: all .15s ease; white-space: nowrap;
+    }
+    .pick-btn:active { transform: scale(.96); }
+    .pick-btn.active {
+      background: var(--primary); border-color: var(--primary);
+      color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.3);
+    }
+    .car-btn   { font-size: 1rem;   padding: 16px 8px; }
+    .floor-btn { font-size: 1.2rem; font-weight: 900; padding: 20px 8px; }
+
+    /* ── 폼 섹션 ── */
+    #form-section { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+
+    /* ── 저장 버튼 ── */
+    #save-btn {
+      width: 100%; padding: 18px;
+      background: var(--primary); color: #fff; border: none;
+      border-radius: var(--radius);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 1.1rem; font-weight: 900; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37,99,235,.35);
+      transition: all .15s ease; margin-top: 4px;
+    }
+    #save-btn:active   { transform: scale(.98); }
+    #save-btn:disabled { background: #94A3B8; box-shadow: none; cursor: default; }
+
+    /* ── 기록 목록 ── */
+    .history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .history-header .section-title { margin-bottom: 0; }
+    #refresh-btn {
+      background: none; border: none; font-size: 1.2rem;
+      cursor: pointer; padding: 4px 8px; border-radius: 8px; color: var(--muted);
+    }
+    #refresh-btn:active { background: var(--border); }
+    #history-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .history-item {
+      background: var(--card); border-radius: 14px;
+      padding: 14px 16px; box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .h-floor {
+      background: var(--primary); color: #fff;
+      font-size: 1rem; font-weight: 900;
+      border-radius: 10px; padding: 10px 12px;
+      flex-shrink: 0; min-width: 52px; text-align: center;
+    }
+    .h-body  { flex: 1; min-width: 0; }
+    .h-main  { font-size: 1rem; font-weight: 900; letter-spacing: -.2px; }
+    .h-date  { font-size: .76rem; color: #94A3B8; margin-top: 3px; }
+    .delete-btn {
+      background: none; border: none; font-size: 1rem;
+      cursor: pointer; color: #CBD5E1; padding: 4px 6px;
+      border-radius: 6px; flex-shrink: 0; transition: color .15s;
+    }
+    .delete-btn:active { color: var(--red); }
+    .empty-msg { text-align: center; color: var(--muted); font-size: .9rem; padding: 28px 0; }
+
+    /* ── 토스트 ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1E293B; color: #fff;
+      padding: 12px 26px; border-radius: 100px;
+      font-size: .9rem; font-weight: 700;
+      opacity: 0; pointer-events: none;
+      transition: all .3s ease; z-index: 999; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── 로딩 ── */
+    #loading-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(241,245,249,.65); z-index: 900;
+      align-items: center; justify-content: center;
+    }
+    #loading-overlay.visible { display: flex; }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin  { to { transform: rotate(360deg); } }
+    @keyframes shake {
+      0%,100%{ transform:translateX(0); }
+      20%    { transform:translateX(-8px); }
+      40%    { transform:translateX(8px); }
+      60%    { transform:translateX(-6px); }
+      80%    { transform:translateX(6px); }
+    }
+
+    @media (max-width: 360px) {
+      #app-header h1 { font-size: 1.3rem; }
+      .floor-btn     { font-size: 1.05rem; padding: 16px 4px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header id="app-header">
+    <h1>🚗 주차 위치</h1>
+    <p class="sub">주차 후 층을 기록하고 함께 확인하세요</p>
+  </header>
+
+  <!-- 현재 상태 -->
+  <section id="status-section">
+    <div id="status-card" class="card empty">
+      <div id="status-icon">🅿️</div>
+      <div id="status-info">
+        <div id="status-main">아직 기록 없음</div>
+        <div id="status-sub"></div>
+        <div id="status-time"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 입력 폼 -->
+  <section id="form-section">
+    <h2 class="section-title">📍 주차 위치 저장</h2>
+
+    <div class="input-group">
+      <label class="group-label">누가 주차했나요?</label>
+      <div class="btn-group" id="by-group">
+        <button class="pick-btn active" data-value="DW">DW</button>
+        <button class="pick-btn"        data-value="NY">NY</button>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label class="group-label">차량</label>
+      <div class="btn-group" id="car-group">
+        <button class="pick-btn car-btn" data-value="카니발">🚐 카니발</button>
+        <button class="pick-btn car-btn" data-value="렉스턴">🚙 렉스턴</button>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label class="group-label">주차 층</label>
+      <div class="btn-group" id="floor-group">
+        <button class="pick-btn floor-btn" data-value="B1">B1</button>
+        <button class="pick-btn floor-btn" data-value="B2">B2</button>
+        <button class="pick-btn floor-btn" data-value="B3">B3</button>
+        <button class="pick-btn floor-btn" data-value="B4">B4</button>
+      </div>
+    </div>
+
+    <button id="save-btn" onclick="save()">💾 저장하기</button>
+  </section>
+
+  <!-- 기록 목록 -->
+  <section id="history-section">
+    <div class="history-header">
+      <h2 class="section-title">📋 최근 기록</h2>
+      <button id="refresh-btn" onclick="loadAll()">🔄</button>
+    </div>
+    <div id="history-list"><p class="empty-msg">불러오는 중...</p></div>
+  </section>
+
+  <div id="toast"></div>
+  <div id="loading-overlay"><div class="spinner"></div></div>
+
+  <script>
+    /* ── Google Apps Script URL ── */
+    const GAS = 'https://script.google.com/macros/s/AKfycbwSiOl7RAkLRlOubuc-xMwur1HOjL7lqMKeC02ed49k9snMbFab2Ql1FVaHEZQ8gW6SEQ/exec';
+
+    /* ── 상태 ── */
+    let selFloor  = null;
+    let selCar    = null;
+    let selPerson = 'DW';
+
+    /* ── 초기화 ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      initBtns();
+      loadAll();
+      setInterval(loadAll, 60000);
+    });
+
+    function initBtns() {
+      document.querySelectorAll('#by-group .pick-btn').forEach(b =>
+        b.addEventListener('click', () => { setActive('#by-group', b); selPerson = b.dataset.value; }));
+      document.querySelectorAll('#car-group .pick-btn').forEach(b =>
+        b.addEventListener('click', () => { setActive('#car-group', b); selCar = b.dataset.value; }));
+      document.querySelectorAll('#floor-group .pick-btn').forEach(b =>
+        b.addEventListener('click', () => { setActive('#floor-group', b); selFloor = b.dataset.value; }));
+    }
+
+    function setActive(sel, btn) {
+      document.querySelectorAll(sel + ' .pick-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    /* ── API ── */
+    async function fetchRecords() {
+      const r = await fetch(GAS);
+      const d = await r.json();
+      return (d.data || []).filter(r => r.id);
+    }
+
+    async function postRecord(body) {
+      await fetch(GAS, { method: 'POST', body: JSON.stringify(body) });
+    }
+
+    /* ── 저장 ── */
+    async function save() {
+      if (!selCar)   { toast('⚠️ 차량을 선택해 주세요!', '#DC2626'); shake('#car-group');   return; }
+      if (!selFloor) { toast('⚠️ 주차 층을 선택해 주세요!', '#DC2626'); shake('#floor-group'); return; }
+
+      loading(true);
+      try {
+        await postRecord({ floor: selFloor, car: selCar, parked_by: selPerson });
+        toast('✅ 구글 시트에 저장되었습니다!');
+        resetForm();
+        await loadAll();
+      } catch(e) {
+        toast('❌ 저장 오류. 네트워크를 확인하세요.', '#DC2626');
+      } finally { loading(false); }
+    }
+
+    function resetForm() {
+      selFloor = null; selCar = null;
+      document.querySelectorAll('#floor-group .pick-btn, #car-group .pick-btn')
+              .forEach(b => b.classList.remove('active'));
+    }
+
+    /* ── 전체 로드 ── */
+    async function loadAll() {
+      try {
+        const rows = (await fetchRecords()).sort((a,b) => new Date(b.parked_at) - new Date(a.parked_at));
+        updateStatus(rows[0]);
+        updateHistory(rows);
+      } catch(e) {
+        document.getElementById('history-list').innerHTML = '<p class="empty-msg">불러올 수 없습니다.</p>';
+      }
+    }
+
+    /* ── 상태 카드 ── */
+    function updateStatus(item) {
+      const card = document.getElementById('status-card');
+      const icon = document.getElementById('status-icon');
+      const main = document.getElementById('status-main');
+      const sub  = document.getElementById('status-sub');
+      const time = document.getElementById('status-time');
+      if (item) {
+        card.className   = 'card saved';
+        icon.textContent = item.car === '카니발' ? '🚐' : '🚙';
+        main.textContent = item.parked_by + ' · ' + item.floor + ' · ' + item.car;
+        sub.textContent  = '';
+        time.textContent = fmtDate(item.parked_at);
+      } else {
+        card.className   = 'card empty';
+        icon.textContent = '🅿️';
+        main.textContent = '아직 기록 없음';
+        sub.textContent  = '';
+        time.textContent = '';
+      }
+    }
+
+    /* ── 기록 목록 ── */
+    function updateHistory(rows) {
+      const el = document.getElementById('history-list');
+      if (!rows.length) { el.innerHTML = '<p class="empty-msg">저장된 기록이 없습니다 🅿️</p>'; return; }
+      el.innerHTML = rows.map(r => {
+        const icon = r.car === '카니발' ? '🚐' : '🚙';
+        return `<article class="history-item">
+          <div class="h-floor">${esc(r.floor||'-')}</div>
+          <div class="h-body">
+            <div class="h-main">${icon} ${esc(r.parked_by)} · ${esc(r.floor)} · ${esc(r.car)}</div>
+            <div class="h-date">${fmtDate(r.parked_at)}</div>
+          </div>
+          <button class="delete-btn" onclick="del('${esc(r.id)}')">✕</button>
+        </article>`;
+      }).join('');
+    }
+
+    /* ── 삭제 ── */
+    async function del(id) {
+      if (!confirm('이 기록을 삭제할까요?')) return;
+      loading(true);
+      try {
+        await postRecord({ action: 'delete', id });
+        await loadAll();
+        toast('🗑️ 삭제되었습니다.');
+      } catch(e) {
+        toast('❌ 삭제 오류', '#DC2626');
+      } finally { loading(false); }
+    }
+
+    /* ── 날짜 포맷 ── */
+    function fmtDate(val) {
+      if (!val) return '';
+      const d = new Date(val);
+      if (isNaN(d)) return String(val);
+      const pad = n => String(n).padStart(2,'0');
+      const today = new Date();
+      const isToday = d.getFullYear()===today.getFullYear() &&
+                      d.getMonth()===today.getMonth() &&
+                      d.getDate()===today.getDate();
+      if (isToday) return '오늘 ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      return d.getFullYear() + '/' + pad(d.getMonth()+1) + '/' + pad(d.getDate())
+           + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    /* ── 유틸 ── */
+    function esc(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function toast(msg, color) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.style.background = color||'#1E293B';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2600);
+    }
+    function loading(on) {
+      document.getElementById('loading-overlay').classList.toggle('visible', on);
+    }
+    function shake(sel) {
+      const el = document.querySelector(sel);
+      if (!el) return;
+      el.style.animation = 'none'; el.offsetHeight;
+      el.style.animation = 'shake .35s ease';
+      setTimeout(() => { el.style.animation = ''; }, 400);
+    }
+  </script>
+</body>
+</html>
